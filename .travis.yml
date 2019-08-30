@@ -1,9 +1,12 @@
+sudo: required
+services: docker
 language: go
-
-go_import_path: github.com/p4tin/goaws
-
-go:
-  - 1.9.2
-  - 1.11.4
-  
-script: go test -v -cover -race ./app/...
+go: 1.x
+script:
+  - DOCKER_CONTENT_TRUST=1 docker build . -t bsycorp/goaws:${TRAVIS_BRANCH}
+deploy:
+  - provider: script
+    script: bash ./scripts/docker-deploy.sh
+    on:
+      tags: true
+      repo: bsycorp/goaws
