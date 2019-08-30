@@ -11,7 +11,7 @@ import (
 	"io"
 	"sort"
 
-	"github.com/p4tin/goaws/app"
+	app "goaws/app"
 )
 
 var LogMessages bool

@@ -1,4 +1,4 @@
-package app
+package goaws
 
 /*** List Topics Response */
 type TopicArnResult struct {

@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"testing"
 
-	"github.com/p4tin/goaws/app"
+	app "goaws/app"
 )
 
 const (

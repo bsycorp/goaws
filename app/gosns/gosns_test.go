@@ -9,8 +9,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/p4tin/goaws/app"
-	"github.com/p4tin/goaws/app/common"
+	app "goaws/app"
+	"goaws/app/common"
 )
 
 func TestListTopicshandler_POST_NoTopics(t *testing.T) {

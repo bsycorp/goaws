@@ -6,10 +6,10 @@ import (
 	"net/http"
 	"sync"
 
-	"github.com/p4tin/goaws/app/router"
+	"goaws/app/router"
 	log "github.com/sirupsen/logrus"
 
-	"github.com/p4tin/goaws/app"
+	app "goaws/app"
 	"strings"
 )
 

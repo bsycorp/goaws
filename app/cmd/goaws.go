@@ -8,9 +8,9 @@ import (
 
 	log "github.com/sirupsen/logrus"
 
-	"github.com/p4tin/goaws/app/conf"
-	"github.com/p4tin/goaws/app/gosqs"
-	"github.com/p4tin/goaws/app/router"
+	"goaws/app/conf"
+	"goaws/app/gosqs"
+	"goaws/app/router"
 )
 
 func main() {

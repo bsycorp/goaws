@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/p4tin/goaws/app"
+	app "goaws/app"
 	log "github.com/sirupsen/logrus"
 )
 

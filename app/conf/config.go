@@ -9,8 +9,8 @@ import (
 	"encoding/json"
 
 	"github.com/ghodss/yaml"
-	"github.com/p4tin/goaws/app"
-	"github.com/p4tin/goaws/app/common"
+	app "goaws/app"
+	"goaws/app/common"
 )
 
 var envs map[string]app.Environment

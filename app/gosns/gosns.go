@@ -21,8 +21,8 @@ import (
 	"io/ioutil"
 	"math/big"
 
-	"github.com/p4tin/goaws/app"
-	"github.com/p4tin/goaws/app/common"
+	app "goaws/app"
+	"goaws/app/common"
 	log "github.com/sirupsen/logrus"
 )
 

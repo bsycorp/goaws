@@ -1,4 +1,4 @@
-package app
+package goaws
 
 /*** List Queues Response */
 type ListQueuesResult struct {
