@@ -98,7 +98,7 @@ func ListTopics(w http.ResponseWriter, req *http.Request) {
 	respStruct.Metadata = app.ResponseMetadata{RequestId: uuid}
 
 	respStruct.Result.Topics.Member = make([]app.TopicArnResult, 0, 0)
-	log.Println("Listing Topics")
+	log.Info("Listing Topics")
 	for _, topic := range app.SyncTopics.Topics {
 		ta := app.TopicArnResult{TopicArn: topic.Arn}
 		respStruct.Result.Topics.Member = append(respStruct.Result.Topics.Member, ta)
@@ -116,7 +116,7 @@ func CreateTopic(w http.ResponseWriter, req *http.Request) {
 	} else {
 		topicArn = "arn:aws:sns:" + app.CurrentEnvironment.Region + ":000000000000:" + topicName
 
-		log.Println("Creating Topic:", topicName)
+		log.Infof("Creating Topic: %s", topicName)
 		topic := &app.Topic{Name: topicName, Arn: topicArn}
 		topic.Subscriptions = make([]*app.Subscription, 0, 0)
 		app.SyncTopics.Lock()
@@ -413,7 +413,7 @@ func Unsubscribe(w http.ResponseWriter, req *http.Request) {
 	content := req.FormValue("ContentType")
 	subArn := req.FormValue("SubscriptionArn")
 
-	log.Println("Unsubscribe:", subArn)
+	log.Infof("Unsubscribe: %s", subArn)
 	for _, topic := range app.SyncTopics.Topics {
 		for i, sub := range topic.Subscriptions {
 			if sub.SubscriptionArn == subArn {
@@ -442,7 +442,7 @@ func DeleteTopic(w http.ResponseWriter, req *http.Request) {
 	uriSegments := strings.Split(topicArn, ":")
 	topicName := uriSegments[len(uriSegments)-1]
 
-	log.Println("Delete Topic - TopicName:", topicName)
+	log.Infof("Delete Topic: %s", topicName)
 
 	_, ok := app.SyncTopics.Topics[topicName]
 	if ok {
@@ -537,7 +537,7 @@ func publishSQS(w http.ResponseWriter, req *http.Request,
 
 		log.Infof("%s: Topic: %s(%s), Message: %s\n", time.Now().Format("2006-01-02 15:04:05"), topicName, queueName, msg.MessageBody)
 	} else {
-		log.Infof("%s: Queue %s does not exist, message discarded\n", time.Now().Format("2006-01-02 15:04:05"), queueName)
+		log.Warnf("%s: Queue %s does not exist, message discarded\n", time.Now().Format("2006-01-02 15:04:05"), queueName)
 	}
 }
 

@@ -15,15 +15,19 @@ import (
 
 func main() {
 	var filename string
-	var debug bool
+	var debugLevelLogging bool
+	var infoLevelLogging bool
 	flag.StringVar(&filename, "config", "", "config file location + name")
-	flag.BoolVar(&debug, "debug", false, "debug log level (default Warning)")
+	flag.BoolVar(&debugLevelLogging, "debug", false, "debug log level (default Warning)")
+	flag.BoolVar(&infoLevelLogging, "info", false, "info log level (default Warning)")
 	flag.Parse()
 
 	log.SetFormatter(&log.JSONFormatter{})
 	log.SetOutput(os.Stdout)
-	if debug {
+	if debugLevelLogging {
 		log.SetLevel(log.DebugLevel)
+	} else if infoLevelLogging {
+		log.SetLevel(log.InfoLevel)
 	} else {
 		log.SetLevel(log.WarnLevel)
 	}

@@ -70,7 +70,7 @@ func actionHandler(w http.ResponseWriter, req *http.Request) {
 		}).Debug("Handling URL request")
 	fn, ok := routingTable[req.FormValue("Action")]
 	if !ok {
-		log.Println("Bad Request - Action:", req.FormValue("Action"))
+		log.Warnf("Bad Request - Action: %s", req.FormValue("Action"))
 		w.WriteHeader(http.StatusBadRequest)
 		io.WriteString(w, "Bad Request")
 		return
