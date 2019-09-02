@@ -460,6 +460,7 @@ func DeleteTopic(w http.ResponseWriter, req *http.Request) {
 
 // aws --endpoint-url http://localhost:47194 sns publish --topic-arn arn:aws:sns:yopa-local:000000000000:test1 --message "This is a test"
 func Publish(w http.ResponseWriter, req *http.Request) {
+	waitStart := time.Now()
 	content := req.FormValue("ContentType")
 	topicArn := req.FormValue("TopicArn")
 	subject := req.FormValue("Subject")
@@ -469,6 +470,7 @@ func Publish(w http.ResponseWriter, req *http.Request) {
 
 	arnSegments := strings.Split(topicArn, ":")
 	topicName := arnSegments[len(arnSegments)-1]
+	publishedQueues := []string{}
 
 	_, ok := app.SyncTopics.Topics[topicName]
 	if ok {
@@ -480,7 +482,10 @@ func Publish(w http.ResponseWriter, req *http.Request) {
 		for _, subs := range app.SyncTopics.Topics[topicName].Subscriptions {
 			switch app.Protocol(subs.Protocol) {
 			case app.ProtocolSQS:
-				publishSQS(w, req, subs, messageBody, messageAttributes, subject, topicArn, topicName, messageStructure)
+				if subs.FilterPolicy == nil || subs.FilterPolicy.IsSatisfiedBy(messageAttributes) {
+					publishSQS(w, req, subs, messageBody, messageAttributes, subject, topicArn, topicName, messageStructure)
+					publishedQueues = append(publishedQueues, queueNameFromSubscription(subs))
+				}
 			case app.ProtocolHTTP:
 				fallthrough
 			case app.ProtocolHTTPS:
@@ -490,6 +495,10 @@ func Publish(w http.ResponseWriter, req *http.Request) {
 	} else {
 		createErrorResponse(w, req, "TopicNotFound")
 		return
+	}
+
+	if len(publishedQueues) > 0 {
+		log.Infof("Publish Topic: %s (%s) (elapsed: %v), Message: %s\n", topicName, publishedQueues, time.Since(waitStart), messageBody)
 	}
 
 	//Create the response
@@ -502,15 +511,8 @@ func Publish(w http.ResponseWriter, req *http.Request) {
 func publishSQS(w http.ResponseWriter, req *http.Request,
 	subs *app.Subscription, messageBody string, messageAttributes map[string]app.MessageAttributeValue,
 	subject string, topicArn string, topicName string, messageStructure string) {
-	if subs.FilterPolicy != nil && !subs.FilterPolicy.IsSatisfiedBy(messageAttributes) {
-		return
-	}
 
-	endPoint := subs.EndPoint
-	uriSegments := strings.Split(endPoint, "/")
-	queueName := uriSegments[len(uriSegments)-1]
-	arnSegments := strings.Split(queueName, ":")
-	queueName = arnSegments[len(arnSegments)-1]
+	queueName := queueNameFromSubscription(subs)
 
 	if _, ok := app.SyncQueues.Queues[queueName]; ok {
 		msg := app.Message{}
@@ -529,16 +531,21 @@ func publishSQS(w http.ResponseWriter, req *http.Request,
 			msg.MessageBody = []byte(messageBody)
 		}
 
+		uuid, _ := common.NewUUID()
+
 		msg.MD5OfMessageBody = common.GetMD5Hash(messageBody)
 		msg.Uuid, _ = common.NewUUID()
+		msg.ReceiptHandle = msg.Uuid + "#" + uuid
+		msg.ReceiptTime = time.Now().UTC()
 		app.SyncQueues.Lock()
 		app.SyncQueues.Queues[queueName].Messages = append(app.SyncQueues.Queues[queueName].Messages, msg)
 		app.SyncQueues.Unlock()
 
-		log.Infof("%s: Topic: %s(%s), Message: %s\n", time.Now().Format("2006-01-02 15:04:05"), topicName, queueName, msg.MessageBody)
+		log.Debugf("%s: Topic: %s (%s), Message: %s\n", time.Now().Format("2006-01-02 15:04:05"), topicName, queueName, msg.MessageBody)
 	} else {
 		log.Warnf("%s: Queue %s does not exist, message discarded\n", time.Now().Format("2006-01-02 15:04:05"), queueName)
 	}
+
 }
 
 func publishHTTP(subs *app.Subscription, messageBody string, messageAttributes map[string]app.MessageAttributeValue,
@@ -582,6 +589,14 @@ func formatAttributes(values map[string]app.MessageAttributeValue) map[string]ap
 		}
 	}
 	return attr
+}
+
+func queueNameFromSubscription(subs *app.Subscription) string {
+	endPoint := subs.EndPoint
+	uriSegments := strings.Split(endPoint, "/")
+	queueName := uriSegments[len(uriSegments)-1]
+	arnSegments := strings.Split(queueName, ":")
+	return arnSegments[len(arnSegments)-1]
 }
 
 func callEndpoint(endpoint string, subArn string, msg app.SNSMessage) error {

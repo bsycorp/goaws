@@ -51,7 +51,11 @@ func PeriodicTasks(d time.Duration, quit <-chan struct{}) {
 			for j := range app.SyncQueues.Queues {
 				queue := app.SyncQueues.Queues[j]
 
-				log.Debugf("Queue [%s] length [%d]", queue.Name, len(queue.Messages))
+				_, _, sec := time.Now().Clock()
+				if sec == 0 && len(queue.Messages) > 0 {
+					log.Infof("Queue Stats: %s depth: %d oldest: %v", queue.Name, len(queue.Messages), time.Now().UTC().Sub(queue.Messages[0].ReceiptTime).Round(time.Second))
+				}
+
 				for i := 0; i < len(queue.Messages); i++ {
 					msg := &queue.Messages[i]
 					if msg.ReceiptHandle != "" {
@@ -384,10 +388,10 @@ func ReceiveMessage(w http.ResponseWriter, req *http.Request) {
 		}
 
 	}
-	log.Infof("Getting Message from Queue (elapsed: %v): %s", time.Since(waitStart), queueName)
 
 	app.SyncQueues.Lock() // Lock the Queues
 	if len(app.SyncQueues.Queues[queueName].Messages) > 0 {
+		log.Infof("Receive Message (elapsed: %v): %s", time.Since(waitStart), queueName)
 		numMsg := 0
 		messages = make([]*app.ResultMessage, 0)
 		for i := range app.SyncQueues.Queues[queueName].Messages {
@@ -584,7 +588,7 @@ func DeleteMessageBatch(w http.ResponseWriter, req *http.Request) {
 					log.Infof("Deleting Message, Queue: %s, ReceiptHandle: %s", queueName, msg.ReceiptHandle)
 
 					// Unlock messages for the group
-					log.Printf("FIFO Queue %s unlocking group %s:", queueName, msg.GroupID)
+					log.Debugf("FIFO Queue %s unlocking group %s:", queueName, msg.GroupID)
 					app.SyncQueues.Queues[queueName].UnlockGroup(msg.GroupID)
 					app.SyncQueues.Queues[queueName].Messages = append(app.SyncQueues.Queues[queueName].Messages[:i], app.SyncQueues.Queues[queueName].Messages[i+1:]...)
 
@@ -647,7 +651,7 @@ func DeleteMessage(w http.ResponseWriter, req *http.Request) {
 		for i, msg := range app.SyncQueues.Queues[queueName].Messages {
 			if msg.ReceiptHandle == receiptHandle {
 				// Unlock messages for the group
-				log.Printf("FIFO Queue %s unlocking group %s:", queueName, msg.GroupID)
+				log.Debugf("FIFO Queue %s unlocking group %s:", queueName, msg.GroupID)
 				app.SyncQueues.Queues[queueName].UnlockGroup(msg.GroupID)
 				//Delete message from Q
 				app.SyncQueues.Queues[queueName].Messages = append(app.SyncQueues.Queues[queueName].Messages[:i], app.SyncQueues.Queues[queueName].Messages[i+1:]...)
