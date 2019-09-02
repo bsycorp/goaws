@@ -96,7 +96,7 @@ func ListQueues(w http.ResponseWriter, req *http.Request) {
 	for _, queue := range app.SyncQueues.Queues {
 		app.SyncQueues.RLock()
 		if strings.HasPrefix(queue.Name, queueNamePrefix) {
-			respStruct.Result.QueueUrl = append(respStruct.Result.QueueUrl, queue.URL)
+			respStruct.Result.QueueUrl = append(respStruct.Result.QueueUrl, replaceLocalhostFromHost(queue.URL, req))
 		}
 		app.SyncQueues.RUnlock()
 	}
@@ -113,10 +113,12 @@ func CreateQueue(w http.ResponseWriter, req *http.Request) {
 
 	queueUrl := "http://" + app.CurrentEnvironment.Host + ":" + app.CurrentEnvironment.Port +
 		"/" + app.CurrentEnvironment.AccountID + "/" + queueName
+
 	if app.CurrentEnvironment.Region != "" {
 		queueUrl = "http://sqs." + app.CurrentEnvironment.Region + "." + app.CurrentEnvironment.Host + ":" +
 			app.CurrentEnvironment.Port + "/" + app.CurrentEnvironment.AccountID + "/" + queueName
 	}
+	queueUrl = replaceLocalhostFromHost(queueUrl, req)
 	queueArn := "arn:aws:sqs:" + app.CurrentEnvironment.Region + ":" + app.CurrentEnvironment.AccountID + ":" + queueName
 
 	if _, ok := app.SyncQueues.Queues[queueName]; !ok {
@@ -741,8 +743,9 @@ func GetQueueUrl(w http.ResponseWriter, req *http.Request) {
 	//// Retrieve FormValues required
 	queueName := req.FormValue("QueueName")
 	if queue, ok := app.SyncQueues.Queues[queueName]; ok {
-		url := queue.URL
+		url := replaceLocalhostFromHost(queue.URL, req)
 		log.Infof("Get Queue URL: %s", queueName)
+
 		// Create, encode/xml and send response
 		result := app.GetQueueUrlResult{QueueUrl: url}
 		respStruct := app.GetQueueUrlResponse{"http://queue.amazonaws.com/doc/2012-11-05/", result, app.ResponseMetadata{RequestId: "00000000-0000-0000-0000-000000000000"}}
@@ -893,6 +896,15 @@ func getQueueFromPath(formVal string, theUrl string) string {
 		return ""
 	}
 	return u.Path
+}
+
+func replaceLocalhostFromHost(url string, req *http.Request) string {
+	// If host is unset, generate it dynamically from the incoming requests, deals with split DNS environments like Kubernetes
+	if app.CurrentEnvironment.Host == "" || app.CurrentEnvironment.Host == "localhost" {
+		url = strings.Replace(url, "localhost:" + app.CurrentEnvironment.Port, req.Host, -1)
+	}
+	log.Debugf("replaceLocalhostFromHost: %s", url)
+	return url
 }
 
 func createErrorResponse(w http.ResponseWriter, req *http.Request, err string) {
