@@ -393,7 +393,6 @@ func ReceiveMessage(w http.ResponseWriter, req *http.Request) {
 
 	app.SyncQueues.Lock() // Lock the Queues
 	if len(app.SyncQueues.Queues[queueName].Messages) > 0 {
-		log.Infof("Receive Message (elapsed: %v): %s", time.Since(waitStart), queueName)
 		numMsg := 0
 		messages = make([]*app.ResultMessage, 0)
 		for i := range app.SyncQueues.Queues[queueName].Messages {
@@ -425,6 +424,7 @@ func ReceiveMessage(w http.ResponseWriter, req *http.Request) {
 
 			numMsg++
 		}
+		log.Infof("Receive Message (elapsed: %v): %s took %d", time.Since(waitStart), queueName, numMsg)
 
 		//		respMsg = ResultMessage{MessageId: messages.Uuid, ReceiptHandle: messages.ReceiptHandle, MD5OfBody: messages.MD5OfMessageBody, Body: messages.MessageBody, MD5OfMessageAttributes: messages.MD5OfMessageAttributes}
 		respStruct = app.ReceiveMessageResponse{
