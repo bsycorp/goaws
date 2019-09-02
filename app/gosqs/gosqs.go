@@ -90,11 +90,11 @@ func ListQueues(w http.ResponseWriter, req *http.Request) {
 
 	log.Info("Listing Queues")
 	for _, queue := range app.SyncQueues.Queues {
-		app.SyncQueues.Lock()
+		app.SyncQueues.RLock()
 		if strings.HasPrefix(queue.Name, queueNamePrefix) {
 			respStruct.Result.QueueUrl = append(respStruct.Result.QueueUrl, queue.URL)
 		}
-		app.SyncQueues.Unlock()
+		app.SyncQueues.RUnlock()
 	}
 	enc := xml.NewEncoder(w)
 	enc.Indent("  ", "    ")
@@ -581,7 +581,7 @@ func DeleteMessageBatch(w http.ResponseWriter, req *http.Request) {
 			for i, msg := range app.SyncQueues.Queues[queueName].Messages {
 				if msg.ReceiptHandle == deleteEntry.ReceiptHandle {
 					log.Infof("Deleting Message, Queue: %s, ReceiptHandle: %s", queueName, msg.ReceiptHandle)
-					
+
 					// Unlock messages for the group
 					log.Printf("FIFO Queue %s unlocking group %s:", queueName, msg.GroupID)
 					app.SyncQueues.Queues[queueName].UnlockGroup(msg.GroupID)
@@ -780,9 +780,7 @@ func GetQueueAttributes(w http.ResponseWriter, req *http.Request) {
 		attribs = append(attribs, attr)
 		attr = app.Attribute{Name: "ApproximateNumberOfMessages", Value: strconv.Itoa(len(queue.Messages))}
 		attribs = append(attribs, attr)
-		app.SyncQueues.RLock()
 		attr = app.Attribute{Name: "ApproximateNumberOfMessagesNotVisible", Value: strconv.Itoa(numberOfHiddenMessagesInQueue(*queue))}
-		app.SyncQueues.RUnlock()
 		attribs = append(attribs, attr)
 		attr = app.Attribute{Name: "CreatedTimestamp", Value: "0000000000"}
 		attribs = append(attribs, attr)
