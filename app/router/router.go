@@ -9,6 +9,7 @@ import (
 	"fmt"
 
 	"github.com/gorilla/mux"
+	app "goaws/app"
 	sns "goaws/app/gosns"
 	sqs "goaws/app/gosqs"
 )
@@ -58,8 +59,11 @@ var routingTable = map[string]http.HandlerFunc{
 }
 
 func health(w http.ResponseWriter, req *http.Request) {
+	//Add locks to healthcheck so we actually assert the health of things, if deadlocked it will fail
+	app.SyncQueues.RLock()
 	w.WriteHeader(200)
 	fmt.Fprint(w, "OK")
+	app.SyncQueues.RUnlock()
 }
 
 func actionHandler(w http.ResponseWriter, req *http.Request) {

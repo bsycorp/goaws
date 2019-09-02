@@ -364,6 +364,7 @@ func ReceiveMessage(w http.ResponseWriter, req *http.Request) {
 	//	respMsg := ResultMessage{}
 	respStruct := app.ReceiveMessageResponse{}
 
+	waitStart := time.Now()
 	if waitTimeSeconds == 0 {
 		app.SyncQueues.RLock()
 		waitTimeSeconds = app.SyncQueues.Queues[queueName].ReceiveWaitTimeSecs
@@ -383,7 +384,7 @@ func ReceiveMessage(w http.ResponseWriter, req *http.Request) {
 		}
 
 	}
-	log.Infof("Getting Message from Queue: %s", queueName)
+	log.Infof("Getting Message from Queue (elapsed: %v): %s", time.Since(waitStart), queueName)
 
 	app.SyncQueues.Lock() // Lock the Queues
 	if len(app.SyncQueues.Queues[queueName].Messages) > 0 {
